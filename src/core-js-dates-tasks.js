@@ -112,8 +112,11 @@ function getCountDaysInMonth(month, year) {
  * '2024-02-01T00:00:00.000Z', '2024-02-02T00:00:00.000Z'  => 2
  * '2024-02-01T00:00:00.000Z', '2024-02-12T00:00:00.000Z'  => 12
  */
-function getCountDaysOnPeriod(/* dateStart, dateEnd */) {
-  throw new Error('Not implemented');
+function getCountDaysOnPeriod(dateStart, dateEnd) {
+  const start = new Date(dateStart);
+  const end = new Date(dateEnd);
+  const result = end - start;
+  return Math.floor(result / (1000 * 60 * 60 * 24) + 1);
 }
 
 /**
@@ -133,8 +136,11 @@ function getCountDaysOnPeriod(/* dateStart, dateEnd */) {
  * '2024-02-02', { start: '2024-02-02', end: '2024-03-02' } => true
  * '2024-02-10', { start: '2024-02-02', end: '2024-03-02' } => true
  */
-function isDateInPeriod(/* date, period */) {
-  throw new Error('Not implemented');
+function isDateInPeriod(date, period) {
+  const start = new Date(period.start);
+  const end = new Date(period.end);
+  const targetDate = new Date(date);
+  return targetDate >= start && targetDate <= end;
 }
 
 /**
@@ -148,8 +154,26 @@ function isDateInPeriod(/* date, period */) {
  * '1999-01-05T02:20:00.000Z' => '1/5/1999, 2:20:00 AM'
  * '2010-12-15T22:59:00.000Z' => '12/15/2010, 10:59:00 PM'
  */
-function formatDate(/* date */) {
-  throw new Error('Not implemented');
+function formatDate(date) {
+  const d = new Date(date);
+
+  const month = d.getUTCMonth() + 1;
+  const day = d.getUTCDate();
+  const year = d.getUTCFullYear();
+  let hours = d.getUTCHours();
+  const minutes = String(d.getUTCMinutes()).padStart(2, '0');
+  const seconds = String(d.getUTCSeconds()).padStart(2, '0');
+  const letters = hours >= 12 ? 'PM' : 'AM';
+
+  if (hours === 0) {
+    hours = 12;
+  } else if (hours > 12) {
+    hours -= 12;
+  }
+
+  const res = `${month}/${day}/${year}, ${hours}:${minutes}:${seconds} ${letters}`;
+
+  return res;
 }
 
 /**
@@ -164,8 +188,17 @@ function formatDate(/* date */) {
  * 12, 2023 => 10
  * 1, 2024 => 8
  */
-function getCountWeekendsInMonth(/* month, year */) {
-  throw new Error('Not implemented');
+function getCountWeekendsInMonth(month, year) {
+  let res = 0;
+  const daysInMonth = new Date(year, month, 0).getDate();
+  for (let day = 1; day <= daysInMonth; day += 1) {
+    const date = new Date(year, month - 1, day);
+    const crDay = date.getDay();
+    if (crDay === 0 || crDay === 6) {
+      res += 1;
+    }
+  }
+  return res;
 }
 
 /**
@@ -181,8 +214,18 @@ function getCountWeekendsInMonth(/* month, year */) {
  * Date(2024, 0, 31) => 5
  * Date(2024, 1, 23) => 8
  */
-function getWeekNumberByDate(/* date */) {
-  throw new Error('Not implemented');
+function getWeekNumberByDate(date) {
+  const dateInWork = date;
+  dateInWork.setHours(0, 0, 0, 0);
+  const fDayOfYear = new Date(dateInWork.getFullYear(), 0, 1);
+  const days = (fDayOfYear.getDay() + 6) % 7;
+  const firstMonday = new Date(fDayOfYear);
+  firstMonday.setDate(firstMonday.getDate() - days);
+  const diffDays = Math.floor(
+    (dateInWork - firstMonday) / (24 * 60 * 60 * 1000)
+  );
+  const weekNumber = 1 + Math.floor(diffDays / 7);
+  return weekNumber;
 }
 
 /**
@@ -196,8 +239,17 @@ function getWeekNumberByDate(/* date */) {
  * Date(2024, 0, 13) => Date(2024, 8, 13)
  * Date(2023, 1, 1) => Date(2023, 9, 13)
  */
-function getNextFridayThe13th(/* date */) {
-  throw new Error('Not implemented');
+function getNextFridayThe13th(date) {
+  date.setMonth(0);
+  date.setDate(13);
+  while (date.getDay() !== 5) {
+    date.setMonth(date.getMonth() + 1);
+    if (date.getMonth() > 11) {
+      date.setFullYear(date.getFullYear() + 1);
+      date.setMonth(0);
+    }
+  }
+  return date;
 }
 
 /**
@@ -211,8 +263,18 @@ function getNextFridayThe13th(/* date */) {
  * Date(2024, 5, 1) => 2
  * Date(2024, 10, 10) => 4
  */
-function getQuarter(/* date */) {
-  throw new Error('Not implemented');
+function getQuarter(date) {
+  const month = date.getMonth();
+  if (month >= 0 && month <= 2) {
+    return 1;
+  }
+  if (month >= 3 && month <= 5) {
+    return 2;
+  }
+  if (month >= 6 && month <= 8) {
+    return 3;
+  }
+  return 4;
 }
 
 /**
@@ -233,8 +295,39 @@ function getQuarter(/* date */) {
  * { start: '01-01-2024', end: '15-01-2024' }, 1, 3 => ['01-01-2024', '05-01-2024', '09-01-2024', '13-01-2024']
  * { start: '01-01-2024', end: '10-01-2024' }, 1, 1 => ['01-01-2024', '03-01-2024', '05-01-2024', '07-01-2024', '09-01-2024']
  */
-function getWorkSchedule(/* period, countWorkDays, countOffDays */) {
-  throw new Error('Not implemented');
+function getWorkSchedule(period, countWorkDays, countOffDays) {
+  const start = new Date(period.start.split('-').reverse().join('-'));
+  const end = new Date(period.end.split('-').reverse().join('-'));
+  const schedule = [];
+  let workDaysCount = 0;
+  let offDaysCount = 0;
+  let isWorkDay = true;
+  const date = new Date(start);
+
+  while (date <= end) {
+    if (isWorkDay) {
+      if (workDaysCount < countWorkDays) {
+        const formattedDate = `${date.getDate().toString().padStart(2, '0')}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getFullYear()}`;
+        schedule.push(formattedDate);
+        workDaysCount += 1;
+      } else {
+        isWorkDay = false;
+        offDaysCount = 1;
+        workDaysCount = 0;
+      }
+    } else if (offDaysCount < countOffDays) {
+      offDaysCount += 1;
+    } else {
+      isWorkDay = true;
+      workDaysCount = 1;
+      offDaysCount = 0;
+      const formattedDate = `${date.getDate().toString().padStart(2, '0')}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getFullYear()}`;
+      schedule.push(formattedDate);
+    }
+    date.setDate(date.getDate() + 1);
+  }
+
+  return schedule;
 }
 
 /**
@@ -249,8 +342,12 @@ function getWorkSchedule(/* period, countWorkDays, countOffDays */) {
  * Date(2022, 2, 1) => false
  * Date(2020, 2, 1) => true
  */
-function isLeapYear(/* date */) {
-  throw new Error('Not implemented');
+function isLeapYear(date) {
+  const year = date.getFullYear();
+  if ((year % 4 === 0 && year % 100 !== 0) || year % 400 === 0) {
+    return true;
+  }
+  return false;
 }
 
 module.exports = {
